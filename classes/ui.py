@@ -10,18 +10,61 @@ Parts of the code here are taken from https://github.com/CMDR-WDX/EDMC-Massacres
 the pattern around the UI class.
 """
 
+from classes.logger_factory import logger
+from classes.version_check import open_download_page
 from typing import Optional
 import tkinter as tk
+from theme import theme
 
+
+def __get_column_span():
+    return 1
+
+
+def _display_outdated_version(frame: tk.Frame, row_counter: int) -> int:
+    sub_frame = tk.Frame(frame)
+    sub_frame.grid(row=row_counter, sticky=tk.EW)
+    sub_frame.config(pady=10)
+    tk.Label(sub_frame, text="PvpBot Plugin is Outdated").grid(row=0, column=0, columnspan=2)
+    btn_github = tk.Button(sub_frame, text="Go to Download", command=open_download_page)
+    btn_dismiss = tk.Button(sub_frame, text="Dismiss", command=ui.notify_version_button_dismiss_clicked)
+
+    for i, item in enumerate([btn_github, btn_dismiss]):
+        item.grid(row=1, column=i)
+    theme.update(sub_frame)
+
+    return row_counter+1
+
+
+def _display_error_message(frame: tk.Frame, row_counter: int, message: str):
+    tk.Label(frame, text=message, fg="yellow").grid(column=0, columnspan=__get_column_span(), row=row_counter)
+    return row_counter+1
 
 
 class UI:
     def __init__(self):
         self.__frame: Optional[tk.Frame] = None
         self.__display_outdated_version = False
+        self.__warning_to_display: Optional[str] = "I bims. 1 Error Message"
 
     def update_ui(self):
-        pass
+        if self.__frame is None:
+            logger.warning("UI Frame is not yet set up. The UI was not updated.")
+            return
+        logger.info("Updating UI...")
+        # Remove all Children of Frame and rebuild
+        for child in self.__frame.winfo_children():
+            child.destroy()
+        
+        row_pointer = 0
+        if self.__display_outdated_version:
+            row_pointer = _display_outdated_version(self.__frame, row_pointer)
+        if self.__warning_to_display is not None and len(self.__warning_to_display) > 0:
+            row_pointer = _display_error_message(self.__frame, row_pointer, self.__warning_to_display)
+
+        theme.update(self.__frame)
+        logger.info("UI Update Complete")
+
 
     def set_frame(self, frame: tk.Frame):
         self.__frame = tk.Frame(frame)
@@ -42,3 +85,4 @@ class UI:
         self.update_ui()
 
 
+ui = UI()

@@ -3,10 +3,18 @@ import classes.event_handling as events
 from classes.plugin_settings import configuration
 from classes.logger_factory import logger
 from classes.version_check import build_worker as build_version_check_logger
+from classes.ui import ui
 from os.path import basename, dirname
+import tkinter
+
+
+def plugin_app(parent: tkinter.Frame) -> tkinter.Frame:
+    ui.set_frame(parent)
+    return parent
+
 
 def plugin_start3(_path: str) -> str:
-    logger.info("Stating PVP Bot Plugin")
+    logger.info("Starting PVP Bot Plugin")
 
     if configuration.check_updates:
         logger.info("Starting Update Check in new Thread...")
@@ -40,7 +48,8 @@ def journal_entry(cmdr: str, _is_beta: bool, _system: str,
                   _station: str, entry: dict[str, any], state: dict[str, any]):
 
     data = { "timestamp":"2022-03-27T20:14:48Z", "event":"Died", "Killers":[ { "Name":"Cmdr Jan-RD2", "Ship":"anaconda", "Rank":"Elite" }, { "Name":"Cmdr fr3y4", "Ship":"anaconda", "Rank":"Expert" } ] }
-    events.handle_died_event(cmdr, 4, data, "TestShip")
+    #TODO events.handle_died_event(cmdr, 4, data, "TestShip")
+
     # First Check if this is a PVPKill or Died event
     if entry["event"] not in ["Died", "PVPKill"]:
         return
@@ -52,9 +61,9 @@ def journal_entry(cmdr: str, _is_beta: bool, _system: str,
     own_rank, _ = state["Rank"]["Combat"]
     # At this point only "valid" CMDRs are remaining.
     if entry["event"] == "Died":
-        events.handle_died_event(cmdr, own_rank, event, ship_current_flying)
+        events.handle_died_event(cmdr, own_rank, entry, ship_current_flying)
     elif events["event"] == "PVPKill":
-        events.handle_kill_event(cmdr, own_rank, event, ship_current_flying)
+        events.handle_kill_event(cmdr, own_rank, entry, ship_current_flying)
 
 
 
