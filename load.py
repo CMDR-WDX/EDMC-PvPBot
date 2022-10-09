@@ -47,9 +47,6 @@ def _is_cmdr_valid(cmdr: str) -> bool:
 def journal_entry(cmdr: str, _is_beta: bool, _system: str,
                   _station: str, entry: dict[str, any], state: dict[str, any]):
 
-    data = { "timestamp":"2022-03-27T20:14:48Z", "event":"Died", "Killers":[ { "Name":"Cmdr Jan-RD2", "Ship":"anaconda", "Rank":"Elite" }, { "Name":"Cmdr fr3y4", "Ship":"anaconda", "Rank":"Expert" } ] }
-    events.handle_died_event(cmdr, 4, data, "TestShip")
-
     # First Check if this is a PVPKill or Died event
     if entry["event"] not in ["Died", "PVPKill"]:
         return

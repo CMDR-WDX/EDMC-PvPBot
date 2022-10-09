@@ -130,16 +130,6 @@ def convert_named_rank_to_number(rank_named: str) -> int:
         return -1  # Undefined state
 
 
-def send_to_server(endpoint: str, data: dict, on_fail_callback=None):
-    # FIXME: This throws errors, breaking the catchAll-Exception if an Error occurs in the request (e.g. Port Closed)
-    try:
-        requests.post(f"{__PVP_BOT_SERVER_URL}{endpoint}", json=data, headers={"Authorization": configuration.api_key})
-    except Exception as e:
-        logger.exception(e)
-        if on_fail_callback is not None:
-            on_fail_callback(str(e))
-
-
 _http_handler = HttpThread(__PVP_BOT_SERVER_URL)
 
 
