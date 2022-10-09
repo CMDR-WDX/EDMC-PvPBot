@@ -11,17 +11,20 @@ Your kills can then be queried with the new Discord Bot.
 Put the plugin in EDMC's Plugin Directory, then start the game and go out there and gank ;)
 
 ## File Access
-The only time this plugin reads from the Filesystem directly (as opposed to via EDMC) is to read the `version`-File
+The only times this plugin reads from the Filesystem directly (as opposed to via EDMC) is to read the `version`-File
 to compare with the same file on GitHub to see if a new Version can be downloaded.  
 Said file access happens in `classes/version_check.py::__get_current_version_string`
 
+Additionally, the Filesystem is accessed when the User has chosen to upload old Died/PVPKill events - as in this
+instance the Plugin will manually load old data. This functionality is disabled by default and 
+needs to be turned on in the Settings.
 ## Network Access
 This plugin downloads the `version`-File on startup to see if a new version is present.
 This feature can be turned off in the Settings. You can look up the implementation in 
 `classes/version_check.py::__is_current_version_outdated` 
 
 This plugin will also make POST-Requests to the Gank Bot Backend. 
-The implementation can be found in `classes/event_handling.py::send_to_server`
+The implementation can be found in `classes/event_handling.py::HttpThread::__thread_loop`
 
 ### What type of Data does the Backend Receive?
 `Died`- and `PVPKill`-Events are the only events this Plugin cares about.

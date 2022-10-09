@@ -48,7 +48,7 @@ def journal_entry(cmdr: str, _is_beta: bool, _system: str,
                   _station: str, entry: dict[str, any], state: dict[str, any]):
 
     data = { "timestamp":"2022-03-27T20:14:48Z", "event":"Died", "Killers":[ { "Name":"Cmdr Jan-RD2", "Ship":"anaconda", "Rank":"Elite" }, { "Name":"Cmdr fr3y4", "Ship":"anaconda", "Rank":"Expert" } ] }
-    #TODO events.handle_died_event(cmdr, 4, data, "TestShip")
+    events.handle_died_event(cmdr, 4, data, "TestShip")
 
     # First Check if this is a PVPKill or Died event
     if entry["event"] not in ["Died", "PVPKill"]:
@@ -60,10 +60,14 @@ def journal_entry(cmdr: str, _is_beta: bool, _system: str,
     ship_current_flying: str | None = state["ShipType"]
     own_rank, _ = state["Rank"]["Combat"]
     # At this point only "valid" CMDRs are remaining.
-    if entry["event"] == "Died":
-        events.handle_died_event(cmdr, own_rank, entry, ship_current_flying)
-    elif events["event"] == "PVPKill":
-        events.handle_kill_event(cmdr, own_rank, entry, ship_current_flying)
+    try:
+        if entry["event"] == "Died":
+            events.handle_died_event(cmdr, own_rank, entry, ship_current_flying)
+        elif events["event"] == "PVPKill":
+            events.handle_kill_event(cmdr, own_rank, entry, ship_current_flying)
+    except Exception as e:
+        # Catchall just in Case
+        ui.notify_about_new_warning(str(e))
 
 
 
