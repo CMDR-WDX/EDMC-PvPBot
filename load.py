@@ -4,12 +4,17 @@ from classes.plugin_settings import configuration
 from classes.logger_factory import logger
 from classes.version_check import build_worker as build_version_check_logger
 from classes.ui import ui
+from classes.historic_data import HistoricDataManager
 from os.path import basename, dirname
 import tkinter
 
 
 def plugin_app(parent: tkinter.Frame) -> tkinter.Frame:
     ui.set_frame(parent)
+
+    if configuration.run_historic_aggregation_on_next_startup:
+        HistoricDataManager(configuration.allowed_cmdrs, None, None, ui.notify_about_new_warning)
+
     return parent
 
 
@@ -27,6 +32,7 @@ def plugin_start3(_path: str) -> str:
         thread.start()
     else:
         logger.info("Skipping Update Check. Disabled in Settings")
+
     return basename(dirname(__file__))
 
 
