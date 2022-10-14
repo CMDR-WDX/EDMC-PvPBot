@@ -6,16 +6,18 @@ from dataclasses import dataclass
 import requests
 from classes.plugin_settings import configuration
 from classes.logger_factory import logger
-from typing import Callable
-from classes.data import create_died_event, create_pvpkill_event
+from typing import Callable, Optional
+from classes.data import create_kill_from_died_event, create_pvpkill_event, PvpKillEventData
 
-__PVP_BOT_SERVER_URL = "http://localhost:8080"
+__PVP_BOT_SERVER_URL = "http://134.209.21.33"
 
 
 @dataclass
-class _PostCommand:
+class _HttpCommand:
     endpoint: str
     body: dict
+    method: str = "post"
+    extra: Optional[dict] = None
 
 
 class HttpThread:
@@ -42,10 +44,15 @@ class HttpThread:
             # Blocking
             entry = self.__message_queue.get()
             logger.info("Received new HTTP Post Job in Thread.")
+            headers = {"Authorization": "Bearer "+configuration.api_key,
+                       "Accept": "application/json"}
             try:
                 logger.info(f"Sending Request to {entry.endpoint}")
-                response = requests.post(entry.endpoint, json=entry.body,
-                                         headers={"Authorization": configuration.api_key})
+                response = None
+                if entry.method == "post":
+                    response = requests.post(entry.endpoint, json=entry.body, headers=headers)
+                if entry.method == "get":
+                    response = requests.get(entry.endpoint, headers=headers)
                 status_code = response.status_code
 
                 from classes.ui import ui
@@ -58,6 +65,8 @@ class HttpThread:
                 elif status_code == 401:
                     # Server complains about bad Auth
                     HttpThread.__write_ui_message("PvpBot rejected your API Key. Make sure it is correct.")
+                elif status_code == 404:
+                    HttpThread.__write_ui_message("PvpBot doesnt know this API Endpoint. This should not happen.")
                 elif status_code == 429:
                     # Too many requests. Block this thread for a minute and retry
                     HttpThread.__write_ui_message("PvpBot complains about too many requests. "
@@ -79,28 +88,46 @@ class HttpThread:
                 logger.exception(ex)
                 # Inline Import to avoid Circular Dependency
                 from classes.ui import ui
-                ui.notify_about_new_warning(f"Pvp Bot Failed with the following Error:\n{error_str}")
+                ui.notify_about_new_warning(f"Pvp Bot Plugin Failed with the following Error:\n{error_str}")
 
     def __init__(self, baseurl: str = "http://localhost:8080"):
         self.__baseurl = baseurl
-        self.__message_queue: queue.Queue[_PostCommand] = queue.Queue()
+        self.__message_queue: queue.Queue[_HttpCommand] = queue.Queue()
 
         self.__thread = threading.Thread(name="pvpbot-http-sender-thread", target=self.__thread_loop)
         self.__thread.start()
 
-    def push_new_message(self, endpoint: str, post_body: dict):
-        command = _PostCommand(f"{self.__baseurl}{endpoint}", post_body)
-        self.__message_queue.put(command)
+    def push_new_post_message(self, endpoint: str, post_body: dict):
+        command = _HttpCommand(endpoint, post_body)
+        self.push_raw(command)
+
+    def push_raw(self, cmd: _HttpCommand):
+        cmd.endpoint = f"{self.__baseurl}{cmd.endpoint}"
+        self.__message_queue.put(cmd)
 
 
 _http_handler = HttpThread(__PVP_BOT_SERVER_URL)
 
 
 def handle_died_event(own_cmdr_name: str, own_rank: int, event: dict[str, any], current_ship: str | None):
-    post_body = create_died_event(event, own_cmdr_name, current_ship, own_rank).as_dict()
-    _http_handler.push_new_message("/died", post_body)
+    post_body = create_kill_from_died_event(event, own_cmdr_name, current_ship, own_rank)
+    push_kill_event(post_body)
 
 
 def handle_kill_event(own_cmdr_name: str, own_rank: int, event: dict[str, any], current_ship: str | None):
-    post_body = create_pvpkill_event(event, own_cmdr_name, current_ship, own_rank).as_dict()
-    _http_handler.push_new_message("/kill", post_body)
+    post_body = create_pvpkill_event(event, own_cmdr_name, current_ship, own_rank)
+    push_kill_event(post_body)
+
+
+def push_kill_event(data: PvpKillEventData):
+    _http_handler.push_new_post_message("/api/killboard/add/kill", data.as_dict())
+
+
+def check_api_key():
+    cmd = _HttpCommand("/api/user", {}, "get")
+    _http_handler.push_raw(cmd)
+
+
+def push_kill_event_batch(data: list[PvpKillEventData]):
+    # TODO Implement
+    pass

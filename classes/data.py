@@ -9,10 +9,15 @@ from typing import Callable, Optional
 @dataclass
 class CommanderEntry:
     name: str
-    ship: str
+    ship: Optional[str]
     rank: int
 
     def as_dict(self):
+        if self.ship is None:
+            return {
+                "name": self.name,
+                "rank": self.rank
+            }
         return {
             "name": self.name,
             "ship": self.ship,
@@ -21,37 +26,9 @@ class CommanderEntry:
 
 
 @dataclass
-class CommanderEntryNoShip:
-    name: str
-    rank: int
-
-    def as_dict(self):
-        return {
-            "name": self.name,
-            "rank": self.rank
-        }
-
-
-@dataclass
-class DiedEventData:
-    timestamp: int
-    victim: CommanderEntry
-    killers: list[CommanderEntry]
-    log_origin: Optional[str] = None
-
-
-    def as_dict(self):
-        return {
-            "timestamp": self.timestamp,
-            "victim": self.victim.as_dict(),
-            "killers": list(map(lambda x: x.as_dict(), self.killers))
-        }
-
-
-@dataclass
 class PvpKillEventData:
     timestamp: int
-    victim: CommanderEntryNoShip
+    victim: CommanderEntry
     killer: CommanderEntry
     log_origin: Optional[str] = None
 
@@ -91,7 +68,7 @@ def __timestamp_to_unix(stamp: str) -> int:
     return unix_stamp
 
 
-def create_died_event(event: dict, self_cmdr: str, self_ship: str, self_rank: int) -> Optional[DiedEventData]:
+def create_kill_from_died_event(event: dict, self_cmdr: str, self_ship: str, self_rank: int) -> Optional[PvpKillEventData]:
     event_dict_keys = event.keys()
     if "KillerName" not in event_dict_keys and "Killers" not in event_dict_keys:
         # There was no Killer, self-inflicted death. No need to log
@@ -138,8 +115,8 @@ def create_died_event(event: dict, self_cmdr: str, self_ship: str, self_rank: in
     unix_timestamp = __timestamp_to_unix(event["timestamp"])
 
     victim = CommanderEntry(self_cmdr, self_ship, self_rank)
-    died_event = DiedEventData(unix_timestamp, victim, killers)
-    return died_event
+
+    return PvpKillEventData(unix_timestamp, victim, killers[0])
 
 
 def create_pvpkill_event(event: dict, self_cmdr, self_ship: str, self_rank: int):
@@ -148,7 +125,7 @@ def create_pvpkill_event(event: dict, self_cmdr, self_ship: str, self_rank: int)
     timestamp_str = str(event["timestamp"])
     unix_timestamp = __timestamp_to_unix(timestamp_str)
 
-    victim = CommanderEntryNoShip(victim_name, combat_rank)
+    victim = CommanderEntry(victim_name, None, combat_rank)
     killer = CommanderEntry(self_cmdr, self_ship, self_rank)
 
     return PvpKillEventData(unix_timestamp, victim, killer)

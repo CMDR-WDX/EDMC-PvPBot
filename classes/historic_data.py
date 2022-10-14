@@ -9,7 +9,7 @@ import datetime as dt
 from typing import Callable, Optional
 from config import config
 from classes.logger_factory import logger
-from classes.data import create_pvpkill_event, create_died_event
+from classes.data import create_pvpkill_event, create_kill_from_died_event
 from classes.plugin_settings import configuration
 
 class HistoricDataManager:
@@ -67,7 +67,7 @@ class HistoricDataManager:
                     current_ship = line_as_json["SuitName"]
                 elif line_as_json["event"] == "Died":
                     # handle Died
-                    data = create_died_event(line_as_json, cmdr_name, current_ship, current_rank)
+                    data = create_kill_from_died_event(line_as_json, cmdr_name, current_ship, current_rank)
                     if data is not None:
                         data.log_origin = filename
                         died_events_in_this_file.append(data)
@@ -114,8 +114,22 @@ class HistoricDataManager:
         time.sleep(1)  # Small delay so the user can actually read what is written here
         relevant_log_paths = self._filter_logs_by_timestamp()
         self._cb(f"{str(len(relevant_log_paths))} Logs found matching Time Criteria")
-        pvp_events, died_events = self.__parse_logs_and_filter_cmdrs(relevant_log_paths)
-        self._cb(f"{len(pvp_events)} PVP Events and {len(died_events)} Died Events found... Sending to Backend")
+        pvp_events, died_events_as_pvp_events = self.__parse_logs_and_filter_cmdrs(relevant_log_paths)
+        self._cb(f"{len(pvp_events)} PVP Events and {len(died_events_as_pvp_events)} "
+                 f"Died Events found... Sending to Backend")
+
+        from classes.event_handling import push_kill_event_batch
+
+        pvp_events.extend(died_events_as_pvp_events)
+
+        if len(pvp_events) > 0:
+            push_kill_event_batch(pvp_events)
+
+        # Sleep for 2 seconds. A bit scuffed, but whatever.
+        # I will just assume this is enough time to send stuff to the Backend
+        time.sleep(2)
+        configuration.run_historic_aggregation_on_next_startup = False
+        self._cb(f"Historic Data finished and turned off.")
 
     def __init__(self, only_cmdrs: Optional[list[str]], lower_unix_bound: Optional[int],
                  upper_unix_bound: Optional[int], ui_callback: Callable[[str], None]):

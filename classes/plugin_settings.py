@@ -127,7 +127,7 @@ def build_settings_ui(root: nb.Notebook) -> tk.Frame:
         .grid(columnspan=2, padx=input_offset, sticky=tk.W, pady=0)
     nb.Label(frame, justify=tk.LEFT, text="API Key:").grid(column=0, padx=input_offset, sticky=tk.W)
 
-    api_key_edit_text = nb.Entry(frame, textvariable=__settings_changes["api_key"])
+    api_key_edit_text = nb.Entry(frame, textvariable=__settings_changes["api_key"], show="*")
     api_key_edit_text.grid(columnspan=2, padx=input_offset, sticky=tk.EW)
 
 
