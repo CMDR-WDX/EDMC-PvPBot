@@ -64,7 +64,9 @@ class HistoricDataManager:
                 elif line_as_json["event"] == "Loadout":
                     current_ship = line_as_json["Ship"]
                 elif line_as_json["event"] == "SuitLoadout":
-                    current_ship = line_as_json["SuitName"]
+                    current_ship = "on_foot"
+                    # current_ship = line_as_json["SuitName"] # Can be reactivated later.
+                    # For now, all on-foot kills are just treated as "on_foot"
                 elif line_as_json["event"] == "Died":
                     # handle Died
                     data = create_kill_from_died_event(line_as_json, cmdr_name, current_ship, current_rank)
