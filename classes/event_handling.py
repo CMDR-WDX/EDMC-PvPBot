@@ -125,7 +125,7 @@ def push_kill_event(data: PvpKillEventData):
 
 def check_api_key():
     cmd = _HttpCommand("/api/user", {}, "get")
-    #_http_handler.push_raw(cmd)
+    _http_handler.push_raw(cmd)
 
 
 def push_kill_event_batch(data: list[PvpKillEventData]):
