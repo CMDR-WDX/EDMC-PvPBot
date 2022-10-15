@@ -15,7 +15,7 @@ __PVP_BOT_SERVER_URL = "http://134.209.21.33"
 @dataclass
 class _HttpCommand:
     endpoint: str
-    body: dict
+    body: dict | list[dict]
     method: str = "post"
     extra: Optional[dict] = None
 
@@ -97,7 +97,7 @@ class HttpThread:
         self.__thread = threading.Thread(name="pvpbot-http-sender-thread", target=self.__thread_loop)
         self.__thread.start()
 
-    def push_new_post_message(self, endpoint: str, post_body: dict):
+    def push_new_post_message(self, endpoint: str, post_body: list[dict] | dict):
         command = _HttpCommand(endpoint, post_body)
         self.push_raw(command)
 
@@ -125,9 +125,9 @@ def push_kill_event(data: PvpKillEventData):
 
 def check_api_key():
     cmd = _HttpCommand("/api/user", {}, "get")
-    _http_handler.push_raw(cmd)
+    #_http_handler.push_raw(cmd)
 
 
 def push_kill_event_batch(data: list[PvpKillEventData]):
-    # TODO Implement
-    pass
+    as_list = list(map(lambda x: x.as_dict(), data))
+    _http_handler.push_new_post_message("/api/killboard/add/kill/bulk", as_list)

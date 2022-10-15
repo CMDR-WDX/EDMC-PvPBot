@@ -36,7 +36,7 @@ class PvpKillEventData:
         return {
             "timestamp": self.timestamp,
             "victim": self.victim.as_dict(),
-            "killers": [self.killer.as_dict()]
+            "killer": self.killer.as_dict()
         }
 
 
