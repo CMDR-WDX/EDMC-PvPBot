@@ -94,7 +94,8 @@ class HttpThread:
         self.__baseurl = baseurl
         self.__message_queue: queue.Queue[_HttpCommand] = queue.Queue()
 
-        self.__thread = threading.Thread(name="pvpbot-http-sender-thread", target=self.__thread_loop)
+        self.__thread = threading.Thread(
+            name="pvpbot-http-sender-thread", target=self.__thread_loop, daemon=True)
         self.__thread.start()
 
     def push_new_post_message(self, endpoint: str, post_body: list[dict] | dict):

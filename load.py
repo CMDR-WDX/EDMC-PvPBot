@@ -20,8 +20,6 @@ def plugin_app(parent: tkinter.Frame) -> tkinter.Frame:
     else:
         events.check_api_key()
 
-
-
     return parent
 
 
