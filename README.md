@@ -10,6 +10,21 @@ Your kills can then be queried with the new Discord Bot.
 ## Usage
 Put the plugin in EDMC's Plugin Directory, then start the game and go out there and gank ;)
 
+### Settings
+This plugin has settings.
+On the EDMC Window, go to `File` > `Settings`.
+Head to the `EDMC_PvpBot` Tab.
+Here you have the following options:
+* Look for Updates on Startup
+  * Turn this off if you do not want to be informed about a new version on Startup
+* Allowed CMDRs
+  * you can enter a List of Commander Names here. Use the following format: `Name1, Name2, Name 3` etc.
+* API Key
+  * You will need to set this value. Otherwise the Server will reject your Commands.
+* Aggregate Historic Data on next Startup
+  * If you check this option and restart EDMC, it will look through your older Log files and find all Pvp Kills and deaths and send them to the server. It will respect the filter you set with the `Allowed CMDRs` Option.
+
+
 ## File Access
 The only times this plugin reads from the Filesystem directly (as opposed to via EDMC) is to read the `version`-File
 to compare with the same file on GitHub to see if a new Version can be downloaded.  
