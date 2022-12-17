@@ -1,4 +1,3 @@
-import datetime
 import queue
 import threading
 import time
@@ -6,10 +5,10 @@ from dataclasses import dataclass
 import requests
 from classes.plugin_settings import configuration
 from classes.logger_factory import logger
-from typing import Callable, Optional
+from typing import Optional
 from classes.data import create_kill_from_died_event, create_pvpkill_event, PvpKillEventData
 
-__PVP_BOT_SERVER_URL = "http://134.209.21.33"
+__PVP_BOT_SERVER_URL = "http://api.gankers.org"
 
 
 @dataclass
