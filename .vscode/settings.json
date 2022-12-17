@@ -1,0 +1,11 @@
+{
+    "python.autoComplete.extraPaths": [
+        // Add the Path to your ED Market Connector source installation here.
+        // you can download it from git@github.com:EDCD/EDMarketConnector.git
+
+        
+    ],
+    "python.analysis.extraPaths": [
+        // same path as above
+    ]
+}

@@ -1,0 +1,21 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // This expects an EDMC instance to be runing with debugpy.
+            // Example to start EDMC w/ debugpy:
+            //   python3 -m debugpy --listen 5678 --wait-for-client EDMarketConnector.py                                                     
+            "name": "Attach to EDMC",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "justMyCode": true
+        }
+    ]
+}
