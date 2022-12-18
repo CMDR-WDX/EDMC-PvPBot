@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import requests
 from classes.plugin_settings import configuration
 from classes.logger_factory import logger
-from typing import Optional
+from typing import Callable, Optional
 from classes.data import create_kill_from_died_event, create_pvpkill_event, PvpKillEventData
 
 __PVP_BOT_SERVER_URL = "http://api.gankers.org"
@@ -18,6 +18,15 @@ class _HttpCommand:
     method: str = "post"
     extra: Optional[dict] = None
 
+def build_headers():
+    auth = configuration.api_key
+    import classes.version_check
+    version = classes.version_check.get_current_version_string()
+    return {
+        "Authorization": f"Bearer {auth}",
+        "X-PvpBot-Version": version,
+        "Accept": "application/json"
+    }
 
 class HttpThread:
     """
@@ -29,7 +38,7 @@ class HttpThread:
     @staticmethod
     def __write_ui_message(msg: str):
         from classes.ui import ui
-        ui.notify_about_new_warning(msg)
+        ui.notify_about_new_message(msg)
 
     # This is not run in the main thread
     def __thread_loop(self):
@@ -43,15 +52,14 @@ class HttpThread:
             # Blocking
             entry = self.__message_queue.get()
             logger.info("Received new HTTP Post Job in Thread.")
-            headers = {"Authorization": "Bearer "+configuration.api_key,
-                       "Accept": "application/json"}
+
             try:
                 logger.info(f"Sending Request to {entry.endpoint}")
                 response = None
                 if entry.method == "post":
-                    response = requests.post(entry.endpoint, json=entry.body, headers=headers)
+                    response = requests.post(entry.endpoint, json=entry.body, headers=build_headers())
                 if entry.method == "get":
-                    response = requests.get(entry.endpoint, headers=headers)
+                    response = requests.get(entry.endpoint, headers=build_headers())
                 status_code = response.status_code
 
                 from classes.ui import ui
@@ -81,13 +89,13 @@ class HttpThread:
             except requests.exceptions.ConnectionError as ex:
                 logger.exception(ex)
                 from classes.ui import ui
-                ui.notify_about_new_warning("Error connecting to Server. See logs for more infos.")
+                ui.notify_about_new_message("Error connecting to Server. See logs for more infos.")
             except Exception as ex:
                 error_str = str(ex)
                 logger.exception(ex)
                 # Inline Import to avoid Circular Dependency
                 from classes.ui import ui
-                ui.notify_about_new_warning(f"Pvp Bot Plugin Failed with the following Error:\n{error_str}")
+                ui.notify_about_new_message(f"Pvp Bot Plugin Failed with the following Error:\n{error_str}")
 
     def __init__(self, baseurl: str = "http://localhost:8080"):
         self.__baseurl = baseurl
@@ -128,11 +136,37 @@ def check_api_key():
     _http_handler.push_raw(cmd)
 
 
-def push_kill_event_batch(data: list[PvpKillEventData]):
+def handle_historic_data(data: list[PvpKillEventData], callback: Callable[[bool], None]):
+    """
+    NOTE: This is supposed to run from the Event Aggregation Thread.
+    DO NOT RUN THIS FROM ANOTHER THREAD.
+    This call is blocking.
+    """
     import json
     as_list = list(map(lambda x: x.as_dict(), data))
     post_body = {
         "kills": as_list
     }
+    logger.info("Next Line contains Post Body sent as the Aggregate event. POST_BODY_AGGREGATE")
     logger.info(json.dumps(post_body))
-    _http_handler.push_new_post_message("/api/killboard/add/kill/bulk", post_body)
+    #_http_handler.push_new_post_message("/api/killboard/add/kill/bulk", post_body)
+
+    # Used for debugging to not spam the Server
+    DEBUG_REDIRECT_COMMAND = True
+
+    if DEBUG_REDIRECT_COMMAND:
+        time.sleep(1)
+        callback(True)
+        return
+
+
+    # vvv Blocking vvv
+    response = requests.post(f"{__PVP_BOT_SERVER_URL}/api/killboard/add/kill/bulk", json=post_body, headers=build_headers())
+    if not response.ok:
+        # Bad Status Code
+        logger.error(response.raw)
+        callback(False)
+        return
+    logger.info(f"Historic Data was accepted by {__PVP_BOT_SERVER_URL}")
+    logger.info(response.raw)
+    callback(True)

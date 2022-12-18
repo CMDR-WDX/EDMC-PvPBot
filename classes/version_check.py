@@ -11,7 +11,7 @@ import threading
 from requests import get
 from classes.logger_factory import logger
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 _version_url = "https://raw.githubusercontent.com/CMDR-WDX/EDMC-PvPBot/master/version"
 download_url = "https://github.com/CMDR-WDX/EDMC-PvPBot/releases"
@@ -82,21 +82,25 @@ def __is_current_version_outdated(current_version: str, callback: Callable[[bool
     callback(is_outdated)
 
 
-def __get_current_version_string():
+
+own_version: Optional[str] = None
+def get_current_version_string():
     """
     Gets the current version, located in the version-File
     """
-    version_file = Path(__file__).parent.with_name("version")
-    with version_file.open("r", encoding="utf8") as file:
-        current_version = str(file.read())
-        return current_version
+    global own_version
+    if own_version is None:
+        version_file = Path(__file__).parent.with_name("version")
+        with version_file.open("r", encoding="utf8") as file:
+            own_version = str(file.read())
+    return own_version
 
 
 def __worker(cb: Callable[[bool], None]):
     """
     Function invoked by the new Thread used to check if the Version is outdated.
     """
-    current_version = __get_current_version_string()
+    current_version = get_current_version_string()
     __is_current_version_outdated(current_version, cb)
 
 

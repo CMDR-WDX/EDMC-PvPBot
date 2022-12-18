@@ -5,7 +5,6 @@ See https://github.com/CMDR-WDX/EDMC-Massacres/blob/master/classes/massacre_sett
 import os.path
 import tkinter as tk
 import myNotebook as nb
-import string
 
 from config import config
 from ttkHyperlinkLabel import HyperlinkLabel

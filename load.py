@@ -13,10 +13,10 @@ def plugin_app(parent: tkinter.Frame) -> tkinter.Frame:
     ui.set_frame(parent)
 
     if configuration.run_historic_aggregation_on_next_startup:
-        HistoricDataManager(configuration.allowed_cmdrs, None, None, ui.notify_about_new_warning)
+        HistoricDataManager(configuration.allowed_cmdrs, None, None, ui.get_historic_ui())
 
     if len(configuration.api_key) == 0:
-        ui.notify_about_new_warning("No API Key provided.")
+        ui.notify_about_new_message("No API Key provided.")
     else:
         events.check_api_key()
 
@@ -76,7 +76,7 @@ def journal_entry(cmdr: str, _is_beta: bool, _system: str,
     except Exception as e:
         # Catchall just in Case
         logger.exception(e)
-        ui.notify_about_new_warning(str(e))
+        ui.notify_about_new_message(str(e))
 
 
 
