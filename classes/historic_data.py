@@ -48,7 +48,7 @@ class HistoricDataManager:
         pvpkill_events_in_this_file = []
 
         cmdr_name: Optional[str] = None
-        current_ship: Optional[str] = None
+        current_ship: Optional[str] = 'unknown'
         current_rank: Optional[int] = None
 
         line = file.readline()

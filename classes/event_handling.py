@@ -129,8 +129,10 @@ def check_api_key():
 
 
 def push_kill_event_batch(data: list[PvpKillEventData]):
+    import json
     as_list = list(map(lambda x: x.as_dict(), data))
     post_body = {
         "kills": as_list
     }
+    logger.info(json.dumps(post_body))
     _http_handler.push_new_post_message("/api/killboard/add/kill/bulk", post_body)
