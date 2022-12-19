@@ -3,20 +3,24 @@ import classes.event_handling as events
 from classes.plugin_settings import configuration
 from classes.logger_factory import logger
 from classes.version_check import build_worker as build_version_check_logger
-from classes.ui import ui
+from classes.ui import GenericUiMessage, GenericUiMessageType, ui
 from classes.historic_data import HistoricDataManager
 from os.path import basename, dirname
 import tkinter
+
+from typing import Any
 
 
 def plugin_app(parent: tkinter.Frame) -> tkinter.Frame:
     ui.set_frame(parent)
 
     if configuration.run_historic_aggregation_on_next_startup:
-        HistoricDataManager(configuration.allowed_cmdrs, None, None, ui.notify_about_new_warning)
+        HistoricDataManager(configuration.allowed_cmdrs, None, None, ui.get_historic_ui())
 
-    if len(configuration.api_key) == 0:
-        ui.notify_about_new_warning("No API Key provided.")
+    if len(configuration.api_key or "") == 0:
+        no_api_key_error = GenericUiMessage("PvpBot requires an API Key\nHead to the Settings Panel and enter an API Key", GenericUiMessageType.ERROR, 5000)
+        ui.notify_about_new_message(no_api_key_error, False) # This must be false, followed by an .update_ui() because we 
+        ui.update_ui()                                       # cannot generate an Event from the main thread!
     else:
         events.check_api_key()
 
@@ -41,7 +45,7 @@ def plugin_start3(_path: str) -> str:
     return basename(dirname(__file__))
 
 
-def plugin_prefs(parent: any, _cmdr: str, _is_beta: bool):
+def plugin_prefs(parent: Any, _cmdr: str, _is_beta: bool):
     return settings.build_settings_ui(parent)
 
 
@@ -55,8 +59,8 @@ def _is_cmdr_valid(cmdr: str) -> bool:
     return cmdr.upper() in map(str.upper, configuration.allowed_cmdrs)
 
 
-def journal_entry(cmdr: str, _is_beta: bool, _system: str,
-                  _station: str, entry: dict[str, any], state: dict[str, any]):
+def journal_entry(cmdr: str, _is_beta: bool, system: str,
+                  _station: str, entry: dict[str, Any], state: dict[str, Any]):
 
     # First Check if this is a PVPKill or Died event
     if entry["event"] not in ["Died", "PVPKill"]:
@@ -70,13 +74,13 @@ def journal_entry(cmdr: str, _is_beta: bool, _system: str,
     # At this point only "valid" CMDRs are remaining.
     try:
         if entry["event"] == "Died":
-            events.handle_died_event(cmdr, own_rank, entry, ship_current_flying)
+            events.handle_died_event(cmdr, own_rank, entry, ship_current_flying, system)
         elif entry["event"] == "PVPKill":
-            events.handle_kill_event(cmdr, own_rank, entry, ship_current_flying)
+            events.handle_kill_event(cmdr, own_rank, entry, ship_current_flying, system)
     except Exception as e:
         # Catchall just in Case
         logger.exception(e)
-        ui.notify_about_new_warning(str(e))
+        ui.notify_about_new_message(GenericUiMessage(str(e), GenericUiMessageType.ERROR, 10_000))
 
 
 

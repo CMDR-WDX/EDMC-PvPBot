@@ -3,7 +3,9 @@ This Module is used to create Dataclasses for PVPKill and Died Events
 """
 from dataclasses import dataclass
 import datetime
-from typing import Callable, Optional
+from typing import Optional
+
+from classes.plugin_settings import configuration
 
 
 @dataclass
@@ -30,14 +32,18 @@ class PvpKillEventData:
     timestamp: int
     victim: CommanderEntry
     killer: CommanderEntry
+    location: Optional[str] = None
     log_origin: Optional[str] = None
 
     def as_dict(self):
-        return {
+        dictionary =  {
             "timestamp": self.timestamp,
             "victim": self.victim.as_dict(),
             "killer": self.killer.as_dict()
         }
+        if self.location is not None and configuration.send_location:
+            dictionary["location"] = self.location
+        return dictionary
 
 
 __rank_lookup = {
@@ -68,11 +74,20 @@ def __timestamp_to_unix(stamp: str) -> int:
     return unix_stamp
 
 
-def create_kill_from_died_event(event: dict, self_cmdr: str, self_ship: str, self_rank: int) -> Optional[PvpKillEventData]:
+def create_kill_from_died_event(event: dict, self_cmdr: Optional[str], self_ship: Optional[str], self_rank: Optional[int], location: Optional[str]) -> Optional[PvpKillEventData]:
     event_dict_keys = event.keys()
     if "KillerName" not in event_dict_keys and "Killers" not in event_dict_keys:
         # There was no Killer, self-inflicted death. No need to log
         return None
+    
+    if self_cmdr is None:
+        return None
+
+    if self_ship is None:
+        self_ship = "unknown"
+
+    if self_rank is None:
+        self_rank = -1;
 
     killers: list[CommanderEntry] = []
 
@@ -116,10 +131,13 @@ def create_kill_from_died_event(event: dict, self_cmdr: str, self_ship: str, sel
 
     victim = CommanderEntry(self_cmdr, self_ship, self_rank)
 
-    return PvpKillEventData(unix_timestamp, victim, killers[0])
+    return PvpKillEventData(unix_timestamp, victim, killers[0], location)
 
 
-def create_pvpkill_event(event: dict, self_cmdr, self_ship: str, self_rank: int):
+def create_pvpkill_event(event: dict, self_cmdr: Optional[str], self_ship: Optional[str], self_rank: Optional[int], location: Optional[str]):
+    if self_cmdr is None or self_ship is None or self_rank is None:
+        return None
+
     victim_name = str(event["Victim"])
     combat_rank = int(event["CombatRank"])
     timestamp_str = str(event["timestamp"])
@@ -128,5 +146,5 @@ def create_pvpkill_event(event: dict, self_cmdr, self_ship: str, self_rank: int)
     victim = CommanderEntry(victim_name, None, combat_rank)
     killer = CommanderEntry(self_cmdr, self_ship, self_rank)
 
-    return PvpKillEventData(unix_timestamp, victim, killer)
+    return PvpKillEventData(unix_timestamp, victim, killer, location)
 
