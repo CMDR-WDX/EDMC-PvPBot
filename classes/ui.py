@@ -167,14 +167,14 @@ class HistoryAggregatorUI:
         This is expected to be run from the Historic Data Thread.
         This call does a sleep and blocks
         """
-        if not was_succesful:
-            self.__status = HistoryAggregatorUI.__State.FAILED
+        if was_succesful:
+            self.__status = HistoryAggregatorUI.__State.FINISHED
             self.__refreshCallback()
-            time.sleep(10.0)
+            time.sleep(5.0)
             self.__status = HistoryAggregatorUI.__State.IDLE
             self.__refreshCallback()
         else:
-            self.__status = HistoryAggregatorUI.__State.FINISHED
+            self.__status = HistoryAggregatorUI.__State.FAILED
             self.__refreshCallback()
                     
     ###
@@ -192,7 +192,7 @@ class HistoryAggregatorUI:
             return current_counter
 
         if self.__status == HistoryAggregatorUI.__State.FAILED:
-            tk.Label(frame, text="The Server could not parse the response. You can find more information in the EDMC Logs", fg="red")\
+            tk.Label(frame, text="The Server could not parse the response. \nYou can find more information in the EDMC Logs", fg="red")\
                 .grid(column=0, columnspan=1, row=current_counter)
             def close_callback():
                 self.__status = HistoryAggregatorUI.__State.IDLE
@@ -238,6 +238,9 @@ class UI:
         self.__historic_data_ui: Optional[HistoryAggregatorUI] = None
 
     def update_ui(self):
+        """
+        This MUST be called from the main thread
+        """
         if self.__frame is None:
             logger.warning("UI Frame is not yet set up. The UI was not updated.")
             return
@@ -273,7 +276,6 @@ class UI:
             # Put in one Empty child to update size
             empty_child = tk.Frame(self.__frame)
             empty_child.pack()
-
         theme.update(self.__frame)
         logger.info("UI Update Complete")
 

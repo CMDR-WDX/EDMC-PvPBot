@@ -157,7 +157,7 @@ def handle_historic_data(data: list[PvpKillEventData], callback: Callable[[bool]
     #_http_handler.push_new_post_message("/api/killboard/add/kill/bulk", post_body)
 
     # Used for debugging to not spam the Server
-    DEBUG_REDIRECT_COMMAND = True
+    DEBUG_REDIRECT_COMMAND = False
 
     if DEBUG_REDIRECT_COMMAND:
         time.sleep(1)
