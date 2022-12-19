@@ -18,8 +18,9 @@ def plugin_app(parent: tkinter.Frame) -> tkinter.Frame:
         HistoricDataManager(configuration.allowed_cmdrs, None, None, ui.get_historic_ui())
 
     if len(configuration.api_key or "") == 0:
-        no_api_key_error = GenericUiMessage("PvpBot requires an API Key\nHead to the Settings Panel and enter an API Key", GenericUiMessageType.ERROR)
-        ui.notify_about_new_message(no_api_key_error)
+        no_api_key_error = GenericUiMessage("PvpBot requires an API Key\nHead to the Settings Panel and enter an API Key", GenericUiMessageType.ERROR, 5000)
+        ui.notify_about_new_message(no_api_key_error, False) # This must be false, followed by an .update_ui() because we 
+        ui.update_ui()                                       # cannot generate an Event from the main thread!
     else:
         events.check_api_key()
 

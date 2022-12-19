@@ -289,16 +289,16 @@ class UI:
         return self.__historic_data_ui
     
     # is thread-safe
-    def notify_about_new_message(self, message: Optional[GenericUiMessage], send = True):
+    def notify_about_new_message(self, message: Optional[GenericUiMessage], refresh_ui = True):
         self.__current_message = message
         if message is not None: 
-            if message.messageDurationMillis <= 0:
+            if message.messageDurationMillis is None or message.messageDurationMillis <= 0:
                 # Resets the Message without sending out a new timed event to clear. 
                 # This way the message stays on until a new message overrides it.
                 self.__timer.reset_timer()
             else:
                 self.__timer.emit_after_millis(message.messageDurationMillis)
-        if self.__frame is not None and send:
+        if self.__frame is not None and refresh_ui:
             self.__frame.event_generate("<<Refresh>>")
 
     # is thread-safe

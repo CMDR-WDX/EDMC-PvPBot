@@ -1,3 +1,4 @@
+from enum import Enum
 import queue
 import threading
 import time
@@ -7,16 +8,22 @@ from classes.plugin_settings import configuration
 from classes.logger_factory import logger
 from typing import Callable, Optional
 from classes.data import create_kill_from_died_event, create_pvpkill_event, PvpKillEventData
-from classes.ui import GenericUiMessageType
 from config import Any
 
 __PVP_BOT_SERVER_URL = "http://api.gankers.org"
+
+
+class MessageIntent(Enum):
+    CHECK_API_KEY = 0
+    SEND_NEW_EVENT = 1
+
 
 
 @dataclass
 class _HttpCommand:
     endpoint: str
     body: dict | list[dict]
+    intent: MessageIntent
     method: str = "post"
     extra: Optional[dict] = None
 
@@ -38,10 +45,21 @@ class HttpThread:
     """
 
     @staticmethod
-    def __write_ui_message(msg: str, is_error = True, duration_millis = 5000):
-        from classes.ui import ui, GenericUiMessage
-        message = GenericUiMessage(msg, GenericUiMessageType.ERROR if is_error else GenericUiMessageType.WARNING, duration_millis)
+    def __write_ui_error_message(msg: str, duration_millis = 5000):
+        from classes.ui import ui, GenericUiMessage, GenericUiMessageType
+        message = GenericUiMessage(msg, GenericUiMessageType.ERROR, duration_millis)
+        ui.notify_about_new_message(message, True)
 
+    @staticmethod
+    def __write_ui_warning_message(msg: str, duration_millis = 5000):
+        from classes.ui import ui, GenericUiMessage, GenericUiMessageType
+        message = GenericUiMessage(msg, GenericUiMessageType.WARNING ,duration_millis)
+        ui.notify_about_new_message(message, True)
+
+    @staticmethod
+    def __write_ui_info_message(msg: str, duration_millis = 5000):
+        from classes.ui import ui, GenericUiMessage, GenericUiMessageType
+        message = GenericUiMessage(msg, GenericUiMessageType.INFO, duration_millis)
         ui.notify_about_new_message(message, True)
 
     # This is not run in the main thread
@@ -70,35 +88,39 @@ class HttpThread:
                 status_code = response.status_code
                 
                 if status_code == 200:
+                    if entry.intent == MessageIntent.CHECK_API_KEY:
+                        HttpThread.__write_ui_info_message("PvpBot: API Key is valid")
+                    elif entry.intent == MessageIntent.SEND_NEW_EVENT:
+                        HttpThread.__write_ui_info_message("PvpBot: Server acknowledged Event.")
                     continue  # Server is Happy w/ Response. New Kill/Died-Entry has been created
                 elif status_code == 400:
                     # Server complains about something where the client is at fault.
                     error_message = f"PvpBot Backend rejected an event for the following reason:\n{response.text}" # type: ignore
-                    HttpThread.__write_ui_message(error_message)
+                    HttpThread.__write_ui_error_message(error_message)
                 elif status_code == 401:
                     # Server complains about bad Auth
-                    HttpThread.__write_ui_message("PvpBot rejected your API Key. Make sure it is correct.", True, -1)
+                    HttpThread.__write_ui_error_message("PvpBot rejected your API Key. Make sure it is correct.", -1)
                 elif status_code == 404:
-                    HttpThread.__write_ui_message("PvpBot doesnt know this API Endpoint. This should not happen.")
+                    HttpThread.__write_ui_error_message("PvpBot doesnt know this API Endpoint. This should not happen.")
                 elif status_code == 429:
                     # Too many requests. Block this thread for a minute and retry
-                    HttpThread.__write_ui_message("PvpBot complains about too many requests. "
-                                                  "Waiting a minute and retrying.", is_error=False)
+                    HttpThread.__write_ui_warning_message("PvpBot complains about too many requests. "
+                                                  "Waiting a minute and retrying.")
                     self.__message_queue.put(entry)
                     wait_next_loop_because_of_timeout = True
                 elif status_code == 500:
                     # Internal Server Error
-                    HttpThread.__write_ui_message("PvpBots Backend shit the bed :). Your Request is dropped.")
+                    HttpThread.__write_ui_error_message("PvpBots Backend shit the bed :). Your Request is dropped.")
                 else:
-                    HttpThread.__write_ui_message(f"PvpBot Responded w/ {str(status_code)} unexpectedly.", is_error=False)
+                    HttpThread.__write_ui_warning_message(f"PvpBot Responded w/ {str(status_code)} unexpectedly.")
 
             except requests.exceptions.ConnectionError as ex:
                 logger.exception(ex)
-                HttpThread.__write_ui_message("Error connecting to Server. See logs for more infos.")
+                HttpThread.__write_ui_error_message("Error connecting to Server. See logs for more infos.")
             except Exception as ex:
                 error_str = str(ex)
                 logger.exception(ex)
-                HttpThread.__write_ui_message(f"Pvp Bot Plugin Failed with the following Error:\n{error_str}")
+                HttpThread.__write_ui_error_message(f"Pvp Bot Plugin Failed with the following Error:\n{error_str}")
 
     def __init__(self, baseurl: str):
         self.__baseurl = baseurl
@@ -107,9 +129,10 @@ class HttpThread:
         self.__thread = threading.Thread(
             name="pvpbot-http-sender-thread", target=self.__thread_loop, daemon=True)
         self.__thread.start()
+    
 
-    def push_new_post_message(self, endpoint: str, post_body: list[dict] | dict):
-        command = _HttpCommand(endpoint, post_body)
+    def push_new_post_message(self, endpoint: str, post_body: list[dict] | dict, intent: MessageIntent):
+        command = _HttpCommand(endpoint, post_body, intent)
         self.push_raw(command)
 
     def push_raw(self, cmd: _HttpCommand):
@@ -133,11 +156,11 @@ def handle_kill_event(own_cmdr_name: str, own_rank: int, event: dict[str, Any], 
 
 
 def push_kill_event(data: PvpKillEventData):
-    _http_handler.push_new_post_message("/api/killboard/add/kill", data.as_dict())
+    _http_handler.push_new_post_message("/api/killboard/add/kill", data.as_dict(), MessageIntent.SEND_NEW_EVENT)
 
 
 def check_api_key():
-    cmd = _HttpCommand("/api/user", {}, "get")
+    cmd = _HttpCommand("/api/user", {}, MessageIntent.CHECK_API_KEY, "get" )
     _http_handler.push_raw(cmd)
 
 
