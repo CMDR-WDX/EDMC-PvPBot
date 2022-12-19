@@ -16,6 +16,10 @@ class CommanderEntry:
 
     def as_dict(self):
         if self.ship is None:
+            self.ship = "unknown"
+        elif len(self.ship) == 0:
+            self.ship = "unknown"
+        if self.ship is None:
             return {
                 "name": self.name,
                 "rank": self.rank

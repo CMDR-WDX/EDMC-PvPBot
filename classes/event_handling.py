@@ -187,6 +187,8 @@ def handle_historic_data(data: list[PvpKillEventData], callback: Callable[[bool]
         callback(True)
         return
 
+    from classes.ui import ui, GenericUiMessage, GenericUiMessageType
+    ui.notify_about_new_message(GenericUiMessage("Uploading to Server... if you have\nmany logs this can take longer.", GenericUiMessageType.INFO, -1))
 
     # vvv Blocking vvv
     response = requests.post(f"{__PVP_BOT_SERVER_URL}/api/killboard/add/kill/bulk", json=post_body, headers=build_headers())
