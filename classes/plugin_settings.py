@@ -15,6 +15,14 @@ class Configuration:
     Abstraction around the config store
     """
     @property
+    def send_location(self):
+        return config.get_bool(f"{self.plugin_name}.send_location", default=False)
+    
+    @send_location.setter
+    def send_location(self, val: bool):
+        config.set(f"{self.plugin_name}.send_location", val)
+
+    @property
     def check_updates(self):
         return config.get_bool(f"{self.plugin_name}.check_updates", default=True)
 
@@ -70,7 +78,8 @@ class Configuration:
 
     def notify_about_changes(self, data: dict[str, tk.Variable]):
         keys = data.keys()
-
+        if "send_location" in keys:
+            self.send_location = data["send_location"].get()
         if "check_updates" in keys:
             self.check_updates = data["check_updates"].get()
         if "allowed_cmdrs" in keys:
@@ -107,6 +116,7 @@ def build_settings_ui(root: nb.Notebook) -> tk.Frame:
 
     __settings_changes.clear()
     __settings_changes["check_updates"] = tk.BooleanVar(value=configuration.check_updates)
+    __settings_changes["send_location"] = tk.BooleanVar(value=configuration.send_location)
     __settings_changes["allowed_cmdrs"] = tk.StringVar(value=",".join(configuration.allowed_cmdrs))
     __settings_changes["api_key"] = tk.StringVar(value=configuration.api_key)
     __settings_changes["historic.run_on_next_startup"] = \
@@ -115,7 +125,8 @@ def build_settings_ui(root: nb.Notebook) -> tk.Frame:
     nb.Label(frame, text="PVP Bot Settings", pady=10, padx=title_offset).grid(sticky=tk.W)
     nb.Checkbutton(frame, text="Look for Updates on Startup", variable=__settings_changes["check_updates"])\
         .grid(columnspan=2, padx=input_offset, sticky=tk.W)
-
+    nb.Checkbutton(frame, text="Add Location of Kills to Event", variable=__settings_changes["send_location"])\
+        .grid(columnspan=2, padx=input_offset, sticky=tk.W)
     nb.Label(frame, justify=tk.LEFT, text="Allowed CMDRs:").grid(column=0, padx=input_offset, sticky=tk.W)
     allowed_cmdrs_edit_text = nb.Entry(frame, textvariable=__settings_changes["allowed_cmdrs"])
     allowed_cmdrs_edit_text.grid(columnspan=2, padx=input_offset, sticky=tk.EW)

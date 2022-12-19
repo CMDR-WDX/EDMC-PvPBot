@@ -45,7 +45,7 @@ class HistoricDataManager:
     def __handle_log_file(self, file, filename) -> Optional[tuple[list, list]]:
         died_events_in_this_file = []
         pvpkill_events_in_this_file = []
-
+        location: Optional[str] = None
         cmdr_name: Optional[str] = None
         current_ship: Optional[str] = 'unknown'
         current_rank: Optional[int] = None
@@ -58,6 +58,8 @@ class HistoricDataManager:
                     cmdr_name = str(line_as_json["Name"])
                     if not self.__is_cmdr_relevant(cmdr_name):
                         return None
+                elif line_as_json["event"] == "Location" or line_as_json["event"] == "FSDJump":
+                    location = line_as_json["StarSystem"]
                 elif line_as_json["event"] == "Rank":
                     current_rank = line_as_json["Combat"]
                 elif line_as_json["event"] == "Loadout":
@@ -68,13 +70,13 @@ class HistoricDataManager:
                     # For now, all on-foot kills are just treated as "on_foot"
                 elif line_as_json["event"] == "Died":
                     # handle Died
-                    data = create_kill_from_died_event(line_as_json, cmdr_name, current_ship, current_rank)
+                    data = create_kill_from_died_event(line_as_json, cmdr_name, current_ship, current_rank, location)
                     if data is not None:
                         data.log_origin = filename
                         died_events_in_this_file.append(data)
                 elif line_as_json["event"] == "PVPKill":
                     # handle PVP Kill
-                    data = create_pvpkill_event(line_as_json, cmdr_name, current_ship, current_rank)
+                    data = create_pvpkill_event(line_as_json, cmdr_name, current_ship, current_rank, location)
                     if data is not None:
                         data.log_origin = filename
                         pvpkill_events_in_this_file.append(data)

@@ -143,14 +143,14 @@ class HttpThread:
 _http_handler = HttpThread(__PVP_BOT_SERVER_URL)
 
 
-def handle_died_event(own_cmdr_name: str, own_rank: int, event: dict[str, Any], current_ship: str | None):
-    post_body = create_kill_from_died_event(event, own_cmdr_name, current_ship, own_rank)
+def handle_died_event(own_cmdr_name: str, own_rank: int, event: dict[str, Any], current_ship: str | None, location: str):
+    post_body = create_kill_from_died_event(event, own_cmdr_name, current_ship, own_rank, location)
     if post_body is not None:
         push_kill_event(post_body)
 
 
-def handle_kill_event(own_cmdr_name: str, own_rank: int, event: dict[str, Any], current_ship: str | None):
-    post_body = create_pvpkill_event(event, own_cmdr_name, current_ship or "unknown", own_rank)
+def handle_kill_event(own_cmdr_name: str, own_rank: int, event: dict[str, Any], current_ship: str | None,  location: str):
+    post_body = create_pvpkill_event(event, own_cmdr_name, current_ship or "unknown", own_rank, location)
     if post_body is not None:
         push_kill_event(post_body)
 

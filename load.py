@@ -59,7 +59,7 @@ def _is_cmdr_valid(cmdr: str) -> bool:
     return cmdr.upper() in map(str.upper, configuration.allowed_cmdrs)
 
 
-def journal_entry(cmdr: str, _is_beta: bool, _system: str,
+def journal_entry(cmdr: str, _is_beta: bool, system: str,
                   _station: str, entry: dict[str, Any], state: dict[str, Any]):
 
     # First Check if this is a PVPKill or Died event
@@ -74,9 +74,9 @@ def journal_entry(cmdr: str, _is_beta: bool, _system: str,
     # At this point only "valid" CMDRs are remaining.
     try:
         if entry["event"] == "Died":
-            events.handle_died_event(cmdr, own_rank, entry, ship_current_flying)
+            events.handle_died_event(cmdr, own_rank, entry, ship_current_flying, system)
         elif entry["event"] == "PVPKill":
-            events.handle_kill_event(cmdr, own_rank, entry, ship_current_flying)
+            events.handle_kill_event(cmdr, own_rank, entry, ship_current_flying, system)
     except Exception as e:
         # Catchall just in Case
         logger.exception(e)
