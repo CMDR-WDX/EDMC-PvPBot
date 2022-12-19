@@ -7,7 +7,6 @@ import threading
 import time
 import datetime as dt
 from typing import Callable, Optional
-from config import config
 from classes.logger_factory import logger
 from classes.data import create_pvpkill_event, create_kill_from_died_event
 from classes.plugin_settings import configuration
@@ -142,7 +141,7 @@ class HistoricDataManager:
 
    
         def handle_callback(success: bool) -> None:
-            self.ui_handler.notify_finished(not success)
+            self.ui_handler.notify_finished(success)
             logger.info("Historic Data Job is complete. Turning off again.")
             configuration.run_historic_aggregation_on_next_startup = False
         

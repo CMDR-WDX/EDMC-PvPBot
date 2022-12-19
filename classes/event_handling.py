@@ -7,6 +7,8 @@ from classes.plugin_settings import configuration
 from classes.logger_factory import logger
 from typing import Callable, Optional
 from classes.data import create_kill_from_died_event, create_pvpkill_event, PvpKillEventData
+from classes.ui import GenericUiMessageType
+from config import Any
 
 __PVP_BOT_SERVER_URL = "http://api.gankers.org"
 
@@ -36,9 +38,11 @@ class HttpThread:
     """
 
     @staticmethod
-    def __write_ui_message(msg: str):
-        from classes.ui import ui
-        ui.notify_about_new_message(msg)
+    def __write_ui_message(msg: str, is_error = True, duration_millis = 5000):
+        from classes.ui import ui, GenericUiMessage
+        message = GenericUiMessage(msg, GenericUiMessageType.ERROR if is_error else GenericUiMessageType.WARNING, duration_millis)
+
+        ui.notify_about_new_message(message, True)
 
     # This is not run in the main thread
     def __thread_loop(self):
@@ -60,44 +64,43 @@ class HttpThread:
                     response = requests.post(entry.endpoint, json=entry.body, headers=build_headers())
                 if entry.method == "get":
                     response = requests.get(entry.endpoint, headers=build_headers())
-                status_code = response.status_code
+                if response is None:
+                    return
 
-                from classes.ui import ui
+                status_code = response.status_code
+                
                 if status_code == 200:
                     continue  # Server is Happy w/ Response. New Kill/Died-Entry has been created
                 elif status_code == 400:
                     # Server complains about something where the client is at fault.
-                    HttpThread.__write_ui_message(f"PvpBot Backend rejected an event for the following "
-                                                  f"reason:\n{response.text}")
+                    error_message = f"PvpBot Backend rejected an event for the following reason:\n{response.text}" # type: ignore
+                    HttpThread.__write_ui_message(error_message)
                 elif status_code == 401:
                     # Server complains about bad Auth
-                    HttpThread.__write_ui_message("PvpBot rejected your API Key. Make sure it is correct.")
+                    HttpThread.__write_ui_message("PvpBot rejected your API Key. Make sure it is correct.", True, -1)
                 elif status_code == 404:
                     HttpThread.__write_ui_message("PvpBot doesnt know this API Endpoint. This should not happen.")
                 elif status_code == 429:
                     # Too many requests. Block this thread for a minute and retry
                     HttpThread.__write_ui_message("PvpBot complains about too many requests. "
-                                                  "Waiting a minute and retrying.")
+                                                  "Waiting a minute and retrying.", is_error=False)
                     self.__message_queue.put(entry)
                     wait_next_loop_because_of_timeout = True
                 elif status_code == 500:
                     # Internal Server Error
                     HttpThread.__write_ui_message("PvpBots Backend shit the bed :). Your Request is dropped.")
                 else:
-                    HttpThread.__write_ui_message(f"PvpBot Responded w/ {str(status_code)} unexpectedly.")
+                    HttpThread.__write_ui_message(f"PvpBot Responded w/ {str(status_code)} unexpectedly.", is_error=False)
 
             except requests.exceptions.ConnectionError as ex:
                 logger.exception(ex)
-                from classes.ui import ui
-                ui.notify_about_new_message("Error connecting to Server. See logs for more infos.")
+                HttpThread.__write_ui_message("Error connecting to Server. See logs for more infos.")
             except Exception as ex:
                 error_str = str(ex)
                 logger.exception(ex)
-                # Inline Import to avoid Circular Dependency
-                from classes.ui import ui
-                ui.notify_about_new_message(f"Pvp Bot Plugin Failed with the following Error:\n{error_str}")
+                HttpThread.__write_ui_message(f"Pvp Bot Plugin Failed with the following Error:\n{error_str}")
 
-    def __init__(self, baseurl: str = "http://localhost:8080"):
+    def __init__(self, baseurl: str):
         self.__baseurl = baseurl
         self.__message_queue: queue.Queue[_HttpCommand] = queue.Queue()
 
@@ -117,14 +120,16 @@ class HttpThread:
 _http_handler = HttpThread(__PVP_BOT_SERVER_URL)
 
 
-def handle_died_event(own_cmdr_name: str, own_rank: int, event: dict[str, any], current_ship: str | None):
+def handle_died_event(own_cmdr_name: str, own_rank: int, event: dict[str, Any], current_ship: str | None):
     post_body = create_kill_from_died_event(event, own_cmdr_name, current_ship, own_rank)
-    push_kill_event(post_body)
+    if post_body is not None:
+        push_kill_event(post_body)
 
 
-def handle_kill_event(own_cmdr_name: str, own_rank: int, event: dict[str, any], current_ship: str | None):
-    post_body = create_pvpkill_event(event, own_cmdr_name, current_ship, own_rank)
-    push_kill_event(post_body)
+def handle_kill_event(own_cmdr_name: str, own_rank: int, event: dict[str, Any], current_ship: str | None):
+    post_body = create_pvpkill_event(event, own_cmdr_name, current_ship or "unknown", own_rank)
+    if post_body is not None:
+        push_kill_event(post_body)
 
 
 def push_kill_event(data: PvpKillEventData):

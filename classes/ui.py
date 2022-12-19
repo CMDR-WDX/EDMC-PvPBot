@@ -22,7 +22,6 @@ from theme import theme
 from typing import Callable
 
 
-
 class GenericUiMessageType(Enum):
     INFO = 1
     WARNING = 2
@@ -49,10 +48,6 @@ class GenericUiMessage:
     If a Refresh-Event needs to be emitted.
     """
 
-
-
-def __get_column_span():
-    return 1
 
 
 def _display_outdated_version(frame: tk.Frame, row_counter: int) -> int:
@@ -127,10 +122,6 @@ class HistoryAggregatorUI:
         FINISHED = 5
 
 
-    def __get_column_span(self):
-        return 1
-
-
     def __init__(self, refreshCallback: Callable) -> None:
         """
         @param refreshCallback - Callback to be invoked to make the UI rerender its state.
@@ -202,12 +193,12 @@ class HistoryAggregatorUI:
 
         if self.__status == HistoryAggregatorUI.__State.FAILED:
             tk.Label(frame, text="The Server could not parse the response. You can find more information in the EDMC Logs", fg="red")\
-                .grid(column=0, columnspan=self.__get_column_span(), row=current_counter)
+                .grid(column=0, columnspan=1, row=current_counter)
             def close_callback():
                 self.__status = HistoryAggregatorUI.__State.IDLE
                 self.__refreshCallback()
             tk.Button(frame, text="Close Error", fg="red", command=lambda : close_callback())\
-                .grid(column=0, columnspan=self.__get_column_span(), row=current_counter+1)
+                .grid(column=0, columnspan=1, row=current_counter+1)
             return current_counter+2
         else:
             message: str = ""
@@ -223,7 +214,7 @@ class HistoryAggregatorUI:
                 colour = "green"
             # TODO: Add Statements here
             tk.Label(frame, text=message, fg=colour)\
-                .grid(column=0, columnspan=self.__get_column_span(), row=current_counter)
+                .grid(column=0, columnspan=1, row=current_counter)
             return current_counter+1
 
         
@@ -242,7 +233,7 @@ class UI:
     def __init__(self):
         self.__frame: Optional[tk.Frame] = None
         self.__display_outdated_version = False
-        self.__current_message: Optional[GenericUiMessage]
+        self.__current_message: Optional[GenericUiMessage] = None
         self.__timer = _ResettableTimer(lambda: self.notify_about_new_message(None, True))
         self.__historic_data_ui: Optional[HistoryAggregatorUI] = None
 
@@ -255,7 +246,10 @@ class UI:
         for child in self.__frame.winfo_children():
             child.destroy()
         
-        row_pointer = self.get_historic_ui.update_ui(self.__frame, 0)
+        row_pointer = 0
+        historic_ui = self.get_historic_ui()
+        if historic_ui is not None:
+            row_pointer = historic_ui.update_ui(self.__frame, 0)
         if self.__display_outdated_version:
             row_pointer = _display_outdated_version(self.__frame, row_pointer)
         if self.__current_message is not None:
@@ -269,8 +263,9 @@ class UI:
                 color = "red"
             elif self.__current_message.messageType == GenericUiMessageType.TEST:
                 color = "blue"
+
             tk.Label(self.__frame, text=self.__current_message.message, fg=color)\
-                .grid(column=0, columnspan=__get_column_span(), row=row_pointer)
+                .grid(column=0, columnspan=1, row=row_pointer)
             row_pointer += 1
 
 
@@ -294,8 +289,10 @@ class UI:
     # is thread-safe
     def notify_about_new_message(self, message: Optional[GenericUiMessage], send = True):
         self.__current_message = message
-        if message is not None:
+        if message is not None: 
             if message.messageDurationMillis <= 0:
+                # Resets the Message without sending out a new timed event to clear. 
+                # This way the message stays on until a new message overrides it.
                 self.__timer.reset_timer()
             else:
                 self.__timer.emit_after_millis(message.messageDurationMillis)

@@ -6,7 +6,7 @@ import os.path
 import tkinter as tk
 import myNotebook as nb
 
-from config import config
+from config import Callable, config
 from ttkHyperlinkLabel import HyperlinkLabel
 
 
@@ -102,7 +102,7 @@ def build_settings_ui(root: nb.Notebook) -> tk.Frame:
     title_offset = 20
     input_offset = 10
 
-    frame = nb.Frame(root)
+    frame = nb.Frame(root) # type: ignore
     #frame.columnconfigure(1, weight=1)
 
     __settings_changes.clear()
