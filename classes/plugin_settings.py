@@ -152,7 +152,7 @@ def build_settings_ui(root: nb.Notebook) -> tk.Frame:
         .grid(columnspan=2, padx=input_offset, sticky=tk.W, pady=0)
 
     nb.Label(frame, text="", pady=10).grid()
-    nb.Label(frame, text="Made by Harry Potter and WDX").grid(sticky=tk.W, padx=input_offset)
+    nb.Label(frame, text="Made by WDX").grid(sticky=tk.W, padx=input_offset)
     HyperlinkLabel(frame, text="View the Code on Github", background=nb.Label().cget("background"),
                    url=download_url, underline=True).grid(columnspan=2, sticky=tk.W, padx=input_offset)
     return frame
