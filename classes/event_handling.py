@@ -171,7 +171,11 @@ def handle_historic_data(data: list[PvpKillEventData], callback: Callable[[bool]
     This call is blocking.
     """
     import json
-    as_list = list(map(lambda x: x.as_dict(), data))
+    def isvalid_kill(entry: PvpKillEventData):
+        return len(entry.killer.name.strip()) > 0 and len(entry.victim.name.strip()) > 0
+
+    valid_kills = filter(lambda x: isvalid_kill(x), data)
+    as_list = list(map(lambda x: x.as_dict(), valid_kills))
     post_body = {
         "kills": as_list
     }
@@ -191,12 +195,17 @@ def handle_historic_data(data: list[PvpKillEventData], callback: Callable[[bool]
     ui.notify_about_new_message(GenericUiMessage("Uploading to Server... if you have\nmany logs this can take longer.", GenericUiMessageType.INFO, -1))
 
     # vvv Blocking vvv
-    response = requests.post(f"{__PVP_BOT_SERVER_URL}/api/killboard/add/kill/bulk", json=post_body, headers=build_headers())
-    if not response.ok:
-        # Bad Status Code
-        logger.error(response.raw)
-        callback(False)
-        return
-    logger.info(f"Historic Data was accepted by {__PVP_BOT_SERVER_URL}")
-    logger.info(response.raw)
-    callback(True)
+    success = False
+    try:
+        response = requests.post(f"{__PVP_BOT_SERVER_URL}/api/killboard/add/kill/bulk", json=post_body, headers=build_headers())
+        success = response.ok
+        if success:
+            logger.info(f"Historic Data was accepted by {__PVP_BOT_SERVER_URL}")
+            logger.info(response.raw)
+        else:
+            # Bad Status Code
+            logger.error(f"Status: {response.status_code}; {str(response.text)}")
+    except Exception as e:
+        logger.error("Sending Historic Data threw an exception.")
+        logger.error(e)
+    callback(success)
