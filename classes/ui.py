@@ -281,7 +281,7 @@ class UI:
 
     def set_frame(self, frame: tk.Frame):
         self.__frame = tk.Frame(frame)
-        self.__frame.grid(column=0, columnspan=1, sticky=tk.W)
+        self.__frame.grid(column=0, columnspan=2, sticky=tk.W)
         self.__frame.bind("<<Refresh>>", lambda _: self.update_ui())
         self.__historic_data_ui = HistoryAggregatorUI(lambda : self.notify_about_new_message(None))
 
