@@ -176,36 +176,44 @@ def handle_historic_data(data: list[PvpKillEventData], callback: Callable[[bool]
 
     valid_kills = filter(lambda x: isvalid_kill(x), data)
     as_list = list(map(lambda x: x.as_dict(), valid_kills))
-    post_body = {
-        "kills": as_list
-    }
-    logger.info("Next Line contains Post Body sent as the Aggregate event. POST_BODY_AGGREGATE")
-    logger.info(json.dumps(post_body))
-    #_http_handler.push_new_post_message("/api/killboard/add/kill/bulk", post_body)
 
-    # Used for debugging to not spam the Server
-    DEBUG_REDIRECT_COMMAND = False
+    def chunks(lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
 
-    if DEBUG_REDIRECT_COMMAND:
-        time.sleep(1)
-        callback(True)
-        return
+    for chunk in chunks(as_list, 100):
+        post_body = {
+            "kills": chunk
+        }
+        logger.info("Next Line contains Post Body sent as the Aggregate event. POST_BODY_AGGREGATE")
+        logger.info(json.dumps(post_body))
 
-    from classes.ui import ui, GenericUiMessage, GenericUiMessageType
-    ui.notify_about_new_message(GenericUiMessage("Uploading to Server... if you have\nmany logs this can take longer.", GenericUiMessageType.INFO, -1))
+        # Used for debugging to not spam the Server
+        DEBUG_REDIRECT_COMMAND = False
 
-    # vvv Blocking vvv
-    success = False
-    try:
-        response = requests.post(f"{__PVP_BOT_SERVER_URL}/api/killboard/add/kill/bulk", json=post_body, headers=build_headers())
-        success = response.ok
-        if success:
-            logger.info(f"Historic Data was accepted by {__PVP_BOT_SERVER_URL}")
-            logger.info(response.raw)
-        else:
-            # Bad Status Code
-            logger.error(f"Status: {response.status_code}; {str(response.text)}")
-    except Exception as e:
-        logger.error("Sending Historic Data threw an exception.")
-        logger.error(e)
+        if DEBUG_REDIRECT_COMMAND:
+            time.sleep(1)
+            callback(True)
+            return
+
+        from classes.ui import ui, GenericUiMessage, GenericUiMessageType
+        ui.notify_about_new_message(GenericUiMessage("Uploading to Server... if you have\nmany logs this can take longer.", GenericUiMessageType.INFO, -1))
+
+        # vvv Blocking vvv
+        success = False
+        try:
+            response = requests.post(f"{__PVP_BOT_SERVER_URL}/api/killboard/add/kill/bulk", json=post_body, headers=build_headers())
+            success = response.ok
+            if success:
+                logger.info(f"Historic Data was accepted by {__PVP_BOT_SERVER_URL}")
+                logger.info(response.raw)
+            else:
+                # Bad Status Code
+                logger.error(f"Status: {response.status_code}; {str(response.text)}")
+                break
+        except Exception as e:
+            logger.error("Sending Historic Data threw an exception.")
+            logger.error(e)
+            break
     callback(success)
