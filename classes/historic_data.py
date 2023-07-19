@@ -54,8 +54,8 @@ class HistoricDataManager:
         while line != "":
             try:
                 line_as_json = json.loads(line)
-                if line_as_json["event"] == "Commander":
-                    cmdr_name = str(line_as_json["Name"])
+                if line_as_json["event"] == "LoadGame":
+                    cmdr_name = str(line_as_json["Commander"])
                     if not self.__is_cmdr_relevant(cmdr_name):
                         return None
                 elif line_as_json["event"] == "Location" or line_as_json["event"] == "FSDJump":
